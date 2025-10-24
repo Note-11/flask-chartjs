@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Fraud Detection Dashboard</title>
+    <script src="{{ url_for('static', filename='js/Chart.bundle.js') }}"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .chart-container { width: 80%; margin: 0 auto 50px auto; }
+        .pie-container { width: 300px; height: 300px; margin: 0 auto; }
+        select { padding: 5px; margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Fraud Detection Dashboard</h1>
+
+    <p>Total Transactions: {{ info.total_transactions }}</p>
+    <p>Flagged: {{ info.total_flagged }} | Not Flagged: {{ info.total_not_flagged }}</p>
+
+    <!-- Dropdown to select a transaction -->
+    <form method="get" action="/">
+        <label for="transaction">Select Transaction:</label>
+        <select id="transaction" name="transaction_id">
+            <option value="">--All--</option>
+            {% for t in labels %}
+                <option value="{{ t }}" {% if info.selected_transaction == t %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Show</button>
+    </form>
+
+    <!-- Bar Chart: Amount vs RiskScore -->
+    <div class="chart-container">
+        <canvas id="barChart"></canvas>
+    </div>
+
+    <!-- Pie Chart: Flagged vs Not Flagged -->
+    <div class="pie-container">
+        <canvas id="pieChart"></canvas>
+    </div>
+
+    <script>
+        const highlightIndex = {{ highlight_index if highlight_index is not none else 'null' }};
+        const labels = {{ labels|tojson }};
+        const amountValues = {{ amount_values|tojson }};
+        const riskValues = {{ risk_values|tojson }};
+        const flaggedCount = {{ flagged_count|tojson }};
+
+        // Bar chart with highlight
+        const barColorsAmount = amountValues.map((_, idx) => idx === highlightIndex ? 'rgba(255, 206, 86, 0.8)' : 'rgba(54, 162, 235, 0.6)');
+        const barColorsRisk = riskValues.map((_, idx) => idx === highlightIndex ? 'rgba(255, 159, 64, 0.8)' : 'rgba(255, 99, 132, 0.6)');
+
+        var ctx = document.getElementById('barChart').getContext('2d');
+        var barChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Amount', data: amountValues, backgroundColor: barColorsAmount },
+                    { label: 'Risk Score', data: riskValues, backgroundColor: barColorsRisk }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Pie chart
+        var ctx2 = document.getElementById('pieChart').getContext('2d');
+        var pieChart = new Chart(ctx2, {
+            type: 'pie',
+            data: {
+                labels: ['Not Flagged', 'Flagged'],
+                datasets: [{ data: flaggedCount, backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    </script>
+</body>
+</html>
